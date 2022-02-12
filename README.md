@@ -27,6 +27,8 @@
  - Разрешение изображения - *3000 x 4000*;
  - Минимальная степень размытости изображения будет дополнена.
 
+Датасет доступен по этой [ссылке](https://drive.google.com/drive/folders/19mBuH2d7MAB2mX3V4G8VNXnhqa0U9ubC?usp=sharing).
+
 *Набор изображений обрабатываемых алгоритмом предметов на фоне белого листа *А4*:*
 
 ![washcloth](https://user-images.githubusercontent.com/60978539/153722719-21920ae4-128f-4dae-bf36-1c374dd83f78.jpg)
@@ -49,6 +51,32 @@
 
 ![travel_card](https://user-images.githubusercontent.com/60978539/153722943-46bf76d8-dd5e-4a18-bd62-3a19c125b3fb.jpg)
 
-*А также изображение горизонтальной поверхности:*
+*Изображение горизонтальной поверхности:*
 
 ![floor](https://user-images.githubusercontent.com/60978539/153723019-ace20f38-022f-4a33-99a3-eb6d7633142b.jpg)
+
+*Примечательные изображения:*
+
+Оба предмета помещаются в многоугольник - True.
+![2_1](https://user-images.githubusercontent.com/60978539/153726295-b38a704f-1c3a-4c74-a032-a671cba5d6c6.jpg)
+
+Множество предметов помещается в многоугольник - True.
+![10_1](https://user-images.githubusercontent.com/60978539/153726372-f83e1d62-1102-42d3-9341-fa706a76eda0.jpg)
+
+Предмет не помещается в многоугольник из-за его формы - False.
+![19_0](https://user-images.githubusercontent.com/60978539/153726396-3c591146-6c89-4739-a119-572bcaf68d54.jpg)
+
+Ни один предмет не помещается в многоугольник - False.
+![28_0](https://user-images.githubusercontent.com/60978539/153726409-825c8252-a8d8-4b4b-a434-9ed4081157b9.jpg)
+
+Многоугольник превышает требуемое количество вершин, а также является невыпуклым - False.
+![39_0](https://user-images.githubusercontent.com/60978539/153726424-126149c7-f10c-4679-a9ac-c5a5e3a10394.jpg)
+
+Многоугольник является выпуклым - False.
+![45_0](https://user-images.githubusercontent.com/60978539/153726801-3f5483df-f571-41fa-9e98-b4e05a91fd88.jpg)
+
+Лист *А4* с многоугольником расположен в нижней части изображения, а предмет - в верхней - False.
+![48_0](https://user-images.githubusercontent.com/60978539/153726846-7bed1abf-d03b-4b81-99a3-a8026986f165.jpg)
+
+На изображении присутствуют "обрезанные" предметы - False.
+![49_0](https://user-images.githubusercontent.com/60978539/153726882-9718b005-38da-4ddc-b5c0-7a0503f800e4.jpg)
