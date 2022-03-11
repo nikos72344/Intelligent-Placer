@@ -8,8 +8,10 @@ class PolyDetector:
         self.__logger = None
         self.__file_orig = None
 
-        self.__contours = None
+        self.__paper_contour = None
         self.__paper_vertex = None
+
+        self.__poly_contour = None
         self.__poly_vertex = None
 
     def set_logger(self, logger):
@@ -57,17 +59,27 @@ class PolyDetector:
             cx = int(moment['m10'] / moment['m00'])
             cy = int(moment['m01'] / moment['m00'])
             if self.__logger is not None:
-                self.__logger.debug('(x = %s; y = %s)' % (cx, cy))
+                self.__logger.debug('Found contour center (x = %s; y = %s)' % (cx, cy))
 
             if cy < self.__file_orig.shape[0] / 2:
                 final_contours.append(cnt)
             elif self.__logger is not None:
-                self.__logger.info('Contour with the center (%s; %s) was excluded' % (cx, cy))
+                self.__logger.debug('Contour with the center (%s; %s) was excluded' % (cx, cy))
 
         if self.__logger is not None:
             self.__logger.info('%s contours left', len(final_contours))
 
         return final_contours
+
+    def __get_poly_paper_contours(self, contours):
+        contour_areas = []
+
+        for cnt in contours:
+            contour_areas.append((cv2.arcLength(cnt, True), cnt))
+
+        contour_areas_sorted = sorted(contour_areas, key=lambda tup: tup[0])
+
+        return contour_areas_sorted[0][1], contour_areas_sorted[-1][1]
 
     def __find_vertex(self, contours):
         vertex = []
@@ -82,7 +94,7 @@ class PolyDetector:
                 if i % 2 == 0:
                     vertex.append((n[i], n[i + 1]))
                     if self.__logger is not None:
-                        self.__logger.info('Found vertex: (%s; %s)' % (n[i], n[i + 1]))
+                        self.__logger.debug('Found vertex: (%s; %s)' % (n[i], n[i + 1]))
                 i = i + 1
 
         if self.__logger is not None:
@@ -115,11 +127,11 @@ class PolyDetector:
                 self.__logger.error('Incorrect polygon vertex amount: %s' % len(x_sorted))
             return False
 
-        self.__paper_vertex = sorted(x_sorted, key=lambda tup: tup[1])
+        self.__poly_vertex = sorted(x_sorted, key=lambda tup: tup[1])
 
         if self.__logger is not None:
             self.__logger.info('Found polygon vertex')
-            self.__logger.debug('Polygon vertex are: %s' % self.__paper_vertex)
+            self.__logger.debug('Polygon vertex are: %s' % self.__poly_vertex)
 
         return True
 
@@ -139,21 +151,49 @@ class PolyDetector:
                 self.__logger.error('Detected only two contours in paper area: check your image')
             return False
 
-        self.__contours = contours
-        cv2.drawContours(self.__file_orig, self.__contours, -1, (0, 0, 255), 5, cv2.LINE_AA)
+        if len(contours) > 3:
+            if self.__logger is not None:
+                self.__logger.error('More then two contours in paper area: check for a sheet with a polygon at the top')
+            return False
 
-        result = self.__determine_vertex(self.__find_vertex(contours))
+        self.__poly_contour, self.__paper_contour = self.__get_poly_paper_contours(contours)
 
-        cv2.circle(self.__file_orig, self.__paper_vertex, radius=3, color=(255, 0, 0), thickness=-1)
-        cv2.circle(self.__file_orig, self.__poly_vertex, radius=3, color=(0, 255, 0), thickness=-1)
+        if self.__logger is not None:
+            self.__logger.info('Detected polygon and paper contours')
+
+        cv2.drawContours(self.__file_orig, self.__paper_contour, -1, (0, 0, 255), 5, cv2.LINE_AA)
+        cv2.drawContours(self.__file_orig, self.__poly_contour, -1, (255, 0, 0), 5, cv2.LINE_AA)
+
+        if self.__logger is not None:
+            self.__logger.debug('Detected contours are drawn')
+
+        result = self.__determine_vertex(self.__find_vertex([self.__paper_contour, self.__poly_contour]))
+
+        if result:
+            for dot in self.__paper_vertex:
+                cv2.circle(self.__file_orig, dot, radius=10, color=(255, 0, 0), thickness=-1)
+
+            for dot in self.__poly_vertex:
+                cv2.circle(self.__file_orig, dot, radius=10, color=(0, 255, 0), thickness=-1)
+
+            if self.__logger is not None:
+                self.__logger.debug('Found vertex are drawn')
 
         return result
+
+    def get_paper_contour(self):
+        return self.__paper_contour
 
     def get_paper_vertex(self):
         return self.__paper_vertex
 
+    def get_poly_contour(self):
+        return self.__poly_contour
+
     def get_poly_vertex(self):
         return self.__poly_vertex
 
-    def save_result(self, path='./output/output.jpg'):
+    def save_result(self, path='output.jpg'):
         cv2.imwrite(path, self.__file_orig)
+        if self.__logger is not None:
+            self.__logger.info('Result have been saved to \'%s\'' % path)
