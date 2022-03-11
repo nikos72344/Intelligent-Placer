@@ -7,7 +7,6 @@ class PolyDetector:
     def __init__(self):
         self.__path = ''
         self.__logger = None
-        self.__file_orig = None
 
         self.__paper_contour = None
         self.__paper_vertex = None
@@ -18,24 +17,13 @@ class PolyDetector:
     def set_logger(self, logger: logging):
         self.__logger = logger
 
-    def __read_file_orig(self, path):
+    def __is_file_exist(self, path):
         if not os.path.exists(path):
             if self.__logger is not None:
                 self.__logger.error('File \'%s\' doesn\'t exist' % path)
             return False
 
-        temp = cv2.imread(path)
-        height, width, channels = temp.shape
-        if height != 4000 or width != 3000 or channels != 3:
-            if self.__logger is not None:
-                self.__logger.error('Wrong file resolution: image must be 3000 x 4000')
-            return False
-
         self.__path = path
-        self.__file_orig = temp
-
-        if self.__logger is not None:
-            self.__logger.info('Original file read successfully')
 
         return True
 
@@ -69,7 +57,7 @@ class PolyDetector:
             if self.__logger is not None:
                 self.__logger.debug('Found contour center (x = %s; y = %s)' % (cx, cy))
 
-            if cy < self.__file_orig.shape[0] / 2:
+            if cy < 4000 / 2:
                 final_contours.append(cnt)
             elif self.__logger is not None:
                 self.__logger.debug('Contour with the center (%s; %s) was excluded' % (cx, cy))
@@ -130,7 +118,7 @@ class PolyDetector:
         x_sorted.pop(-1)
         x_sorted.pop(-1)
 
-        if len(x_sorted) < 3 or len(x_sorted) > 6:
+        if len(x_sorted) < 3:
             if self.__logger is not None:
                 self.__logger.error('Incorrect polygon vertex amount: %s' % len(x_sorted))
             return False
@@ -143,8 +131,8 @@ class PolyDetector:
 
         return True
 
-    def detect(self, path):
-        if not self.__read_file_orig(path):
+    def detect(self, path: str):
+        if not self.__is_file_exist(path):
             return False
 
         contours = self.__filter_contours(self.__find_contours(path))
@@ -159,35 +147,12 @@ class PolyDetector:
                 self.__logger.error('Detected only two contours in paper area: check your image')
             return False
 
-        if len(contours) > 3:
-            if self.__logger is not None:
-                self.__logger.error('More then two contours in paper area: check for a sheet with a polygon at the top')
-            return False
-
         self.__poly_contour, self.__paper_contour = self.__get_poly_paper_contours(contours)
 
         if self.__logger is not None:
             self.__logger.info('Detected polygon and paper contours')
 
-        cv2.drawContours(self.__file_orig, self.__paper_contour, -1, (0, 0, 255), 5, cv2.LINE_AA)
-        cv2.drawContours(self.__file_orig, self.__poly_contour, -1, (255, 0, 0), 5, cv2.LINE_AA)
-
-        if self.__logger is not None:
-            self.__logger.debug('Detected contours are drawn')
-
-        result = self.__determine_vertex(self.__find_vertex([self.__paper_contour, self.__poly_contour]))
-
-        if result:
-            for dot in self.__paper_vertex:
-                cv2.circle(self.__file_orig, dot, radius=15, color=(255, 0, 0), thickness=-1)
-
-            for dot in self.__poly_vertex:
-                cv2.circle(self.__file_orig, dot, radius=15, color=(0, 0, 255), thickness=-1)
-
-            if self.__logger is not None:
-                self.__logger.debug('Found vertex are drawn')
-
-        return result
+        return self.__determine_vertex(self.__find_vertex([self.__paper_contour, self.__poly_contour]))
 
     def get_paper_contour(self):
         return self.__paper_contour
@@ -202,6 +167,39 @@ class PolyDetector:
         return self.__poly_vertex
 
     def save_result(self, path='output.jpg'):
-        cv2.imwrite(path, self.__file_orig)
+        if not self.__is_file_exist(self.__path):
+            return False
+
+        file = cv2.imread(self.__path)
+        height, width, channels = file.shape
+        if height != 4000 or width != 3000 or channels != 3:
+            if self.__logger is not None:
+                self.__logger.error('Wrong file resolution: image must be 3000 x 4000')
+            return False
+
+        if self.__logger is not None:
+            self.__logger.info('Original file read successfully')
+
+        if self.__paper_contour is not None:
+            cv2.drawContours(file , self.__paper_contour, -1, (0, 0, 255), 5, cv2.LINE_AA)
+
+        if self.__poly_contour is not None:
+            cv2.drawContours(file, self.__poly_contour, -1, (255, 0, 0), 5, cv2.LINE_AA)
+
+        if self.__logger is not None:
+            self.__logger.debug('Detected contours are drawn')
+
+        if self.__paper_vertex:
+            for dot in self.__paper_vertex:
+                cv2.circle(file, dot, radius=15, color=(255, 0, 0), thickness=-1)
+
+        if self.__poly_vertex:
+            for dot in self.__poly_vertex:
+                cv2.circle(file, dot, radius=15, color=(0, 0, 255), thickness=-1)
+
+        if self.__logger is not None:
+            self.__logger.debug('Found vertex are drawn')
+
+        cv2.imwrite(path, file)
         if self.__logger is not None:
             self.__logger.info('Result have been saved to \'%s\'' % path)
