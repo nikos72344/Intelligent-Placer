@@ -1,4 +1,5 @@
 import os
+import logging
 import cv2
 
 
@@ -14,7 +15,7 @@ class PolyDetector:
         self.__poly_contour = None
         self.__poly_vertex = None
 
-    def set_logger(self, logger):
+    def set_logger(self, logger: logging):
         self.__logger = logger
 
     def __read_file_orig(self, path):
@@ -23,8 +24,15 @@ class PolyDetector:
                 self.__logger.error('File \'%s\' doesn\'t exist' % path)
             return False
 
+        temp = cv2.imread(path)
+        height, width, channels = temp.shape
+        if height != 4000 or width != 3000 or channels != 3:
+            if self.__logger is not None:
+                self.__logger.error('Wrong file resolution: image must be 3000 x 4000')
+            return False
+
         self.__path = path
-        self.__file_orig = cv2.imread(self.__path)
+        self.__file_orig = temp
 
         if self.__logger is not None:
             self.__logger.info('Original file read successfully')
@@ -39,7 +47,7 @@ class PolyDetector:
         img = cv2.blur(img, (10, 15))
         _, img = cv2.threshold(img, 10, 280, cv2.THRESH_OTSU)
 
-        contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         if self.__logger is not None:
             self.__logger.info('Detected %s contours in file', len(contours))
 
@@ -171,10 +179,10 @@ class PolyDetector:
 
         if result:
             for dot in self.__paper_vertex:
-                cv2.circle(self.__file_orig, dot, radius=10, color=(255, 0, 0), thickness=-1)
+                cv2.circle(self.__file_orig, dot, radius=15, color=(255, 0, 0), thickness=-1)
 
             for dot in self.__poly_vertex:
-                cv2.circle(self.__file_orig, dot, radius=10, color=(0, 255, 0), thickness=-1)
+                cv2.circle(self.__file_orig, dot, radius=15, color=(0, 0, 255), thickness=-1)
 
             if self.__logger is not None:
                 self.__logger.debug('Found vertex are drawn')
