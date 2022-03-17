@@ -32,8 +32,8 @@ class PolyDetector:
         if self.__logger is not None:
             self.__logger.info('Grayscale file read successfully')
 
-        img = cv2.blur(img, (10, 15))
-        _, img = cv2.threshold(img, 10, 280, cv2.THRESH_OTSU)
+        img = cv2.blur(img, (11, 11))
+        _, img = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
 
         contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         if self.__logger is not None:
@@ -75,7 +75,7 @@ class PolyDetector:
 
         contour_areas_sorted = sorted(contour_areas, key=lambda tup: tup[0])
 
-        return contour_areas_sorted[0][1], contour_areas_sorted[-1][1]
+        return contour_areas_sorted[-3][1], contour_areas_sorted[-1][1]
 
     def __find_vertex(self, contours):
         vertex = []
