@@ -27,14 +27,19 @@ class PolyDetector:
 
         return True
 
+    # Находим контуры на изображении
     def __find_contours(self, path):
+        # Считываем изображение в серых тонах
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         if self.__logger is not None:
             self.__logger.info('Grayscale file read successfully')
 
+        # Сглаживаем прочитанное изображение
         img = cv2.blur(img, (11, 11))
-        _, img = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
+        # Проводим бинаризацию
+        _, img = cv2.threshold(img, 150, 255, cv2.THRESH_OTSU)
 
+        # Находим контуры на преобразованном изображении
         contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         if self.__logger is not None:
             self.__logger.info('Detected %s contours in file', len(contours))
@@ -52,11 +57,13 @@ class PolyDetector:
                     self.__logger.debug('Excluded contour with moment m00 = 0')
                 continue
 
+            # Для каждого контура находим его центр
             cx = int(moment['m10'] / moment['m00'])
             cy = int(moment['m01'] / moment['m00'])
             if self.__logger is not None:
                 self.__logger.debug('Found contour center (x = %s; y = %s)' % (cx, cy))
 
+            # Допускаем только контура, центр которых находится в верхней половине изображения
             if cy < 4000 / 2:
                 final_contours.append(cnt)
             elif self.__logger is not None:
@@ -70,13 +77,17 @@ class PolyDetector:
     def __get_poly_paper_contours(self, contours):
         contour_areas = []
 
+        # Находим периметр для каждого контура в верхней части изображения
         for cnt in contours:
             contour_areas.append((cv2.arcLength(cnt, True), cnt))
 
+        # Сортируем по возрастанию периметры
         contour_areas_sorted = sorted(contour_areas, key=lambda tup: tup[0])
 
+        # Наибольший - лист, 3-ий с конца - внутренний контур многоугольника
         return contour_areas_sorted[-3][1], contour_areas_sorted[-1][1]
 
+    # Находим вершины распознанных контуров
     def __find_vertex(self, contours):
         vertex = []
 
@@ -98,6 +109,7 @@ class PolyDetector:
 
         return vertex
 
+    # Определяем, где вершины листа, а где многоугольника
     def __determine_vertex(self, vertex):
         x_sorted = sorted(vertex, key=lambda tup: tup[0])
 
@@ -106,6 +118,7 @@ class PolyDetector:
                 self.__logger.error('Amount of detected vertex is less than 4: check your image')
             return False
 
+        # Точки на переферии - вершины листа. Их всегда 4
         temp = [x_sorted[0], x_sorted[1], x_sorted[-2], x_sorted[-1]]
         self.__paper_vertex = sorted(temp, key=lambda tup: tup[1])
 
@@ -123,6 +136,7 @@ class PolyDetector:
                 self.__logger.error('Incorrect polygon vertex amount: %s' % len(x_sorted))
             return False
 
+        # Остальные точки - вершины многоугольника
         self.__poly_vertex = sorted(x_sorted, key=lambda tup: tup[1])
 
         if self.__logger is not None:
@@ -137,6 +151,7 @@ class PolyDetector:
 
         contours = self.__filter_contours(self.__find_contours(path))
 
+        # Проверка если программа обнаружила неправильное для задачи количество контуров
         if len(contours) == 1:
             if self.__logger is not None:
                 self.__logger.error('Detected only potential paper contour: couldn\'t find polygon')
