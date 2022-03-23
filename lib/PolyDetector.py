@@ -37,7 +37,7 @@ class PolyDetector:
         # Сглаживаем прочитанное изображение
         img = cv2.blur(img, (11, 11))
         # Проводим бинаризацию
-        _, img = cv2.threshold(img, 150, 255, cv2.THRESH_OTSU)
+        img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 25, 2)
 
         # Находим контуры на преобразованном изображении
         contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -84,8 +84,8 @@ class PolyDetector:
         # Сортируем по возрастанию периметры
         contour_areas_sorted = sorted(contour_areas, key=lambda tup: tup[0])
 
-        # Наибольший - лист, 3-ий с конца - внутренний контур многоугольника
-        return contour_areas_sorted[-3][1], contour_areas_sorted[-1][1]
+        # Предпоследний - внутренний контур листа, 4-ий с конца - внутренний контур многоугольника
+        return contour_areas_sorted[-4][1], contour_areas_sorted[-2][1]
 
     # Находим вершины распознанных контуров
     def __find_vertex(self, contours):
@@ -118,7 +118,7 @@ class PolyDetector:
                 self.__logger.error('Amount of detected vertex is less than 4: check your image')
             return False
 
-        # Точки на переферии - вершины листа. Их всегда 4
+        # Точки на периферии - вершины листа. Их всегда 4
         temp = [x_sorted[0], x_sorted[1], x_sorted[-2], x_sorted[-1]]
         self.__paper_vertex = sorted(temp, key=lambda tup: tup[1])
 
@@ -152,14 +152,9 @@ class PolyDetector:
         contours = self.__filter_contours(self.__find_contours(path))
 
         # Проверка если программа обнаружила неправильное для задачи количество контуров
-        if len(contours) == 1:
+        if len(contours) < 4:
             if self.__logger is not None:
-                self.__logger.error('Detected only potential paper contour: couldn\'t find polygon')
-            return False
-
-        if len(contours) == 2:
-            if self.__logger is not None:
-                self.__logger.error('Detected only two contours in paper area: check your image')
+                self.__logger.error('Detected only %s contours in paper area: check your image' % len(contours))
             return False
 
         self.__poly_contour, self.__paper_contour = self.__get_poly_paper_contours(contours)
