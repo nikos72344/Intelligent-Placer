@@ -46,7 +46,7 @@ class ObjectDetector:
 
         left_border = horizontal_indices[0]
         for i in range(1, len(horizontal_indices)):
-            if horizontal_indices[i - 1] != horizontal_indices[i] - 1 and horizontal_indices[i] - left_border >= 100:
+            if horizontal_indices[i - 1] != horizontal_indices[i] - 1 and horizontal_indices[i] - horizontal_indices[i - 1] >= 100:
                 borders.append((left_border, horizontal_indices[i - 1]))
 
                 if self.__logger is not None:
@@ -63,7 +63,7 @@ class ObjectDetector:
 
         left_border = vertical_indices[0]
         for i in range(1, len(vertical_indices)):
-            if vertical_indices[i - 1] != vertical_indices[i] - 1 and vertical_indices[i] - left_border >= 100:
+            if vertical_indices[i - 1] != vertical_indices[i] - 1 and vertical_indices[i] - vertical_indices[i - 1] >= 100:
                 borders.append((left_border, vertical_indices[i - 1]))
 
                 if self.__logger is not None:
