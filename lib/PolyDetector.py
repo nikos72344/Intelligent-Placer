@@ -31,7 +31,13 @@ class PolyDetector:
     def __find_contours(self, path):
         # Считываем изображение в серых тонах
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        if self.__logger is not None:
+
+        height, width = img.shape
+        if height != 4000 or width != 3000:
+            if self.__logger is not None:
+                self.__logger.error('Wrong file resolution: image must be 3000 x 4000')
+            return False
+        elif self.__logger is not None:
             self.__logger.info('Grayscale file read successfully')
 
         # Сглаживаем прочитанное изображение
